@@ -24,3 +24,5 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+require github.com/elastic/go-elasticsearch/v7 v7.9.1-0.20200917075836-455dcb57baf5

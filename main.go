@@ -3,6 +3,10 @@ import (
 	"net/http" 
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"log"
+	"encoding/json"
+	"strings"
+	elasticsearch7 "github.com/elastic/go-elasticsearch/v7"
 )
 
 // album represents data about a record album.
@@ -21,10 +25,29 @@ var albums = []album{
 }
 
 func main() {
+	// es, err := elasticsearch.NewDefaultClient()
+	cfg := elasticsearch7.Config{
+		Addresses: []string{
+			"http://localhost:9200/",
+		},
+		Username: "elastic",
+		Password: "vbhr3RY9t7bdWdeCjoEV",
+	}
+	es, err := elasticsearch7.NewClient(cfg)
+  if err != nil {
+    log.Fatalf("Error creating the client: %s", err)
+  }
+
+  // Print client and server version numbers.
+  log.Printf("Client: %s", elasticsearch7.Version)
+  log.Println(strings.Repeat("~", 37))
+
+
 	router := gin.Default()
 	router.GET("/albums", getAlbums)
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
+	router.GET("/elastic", ESHandler(es))
 	http.HandleFunc("/", homeHandler)
 	router.Run("localhost:8080")
 	
@@ -34,6 +57,31 @@ func main() {
 func getAlbums(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, albums)
 }
+func ESHandler(esCleint *elasticsearch7.Client) gin.HandlerFunc {
+	fn := func(c *gin.Context) {
+		var (
+			r  map[string]interface{}
+		)
+		// 1. Get cluster info
+		//
+		res, err := esCleint.Info()
+		if err != nil {
+			log.Fatalf("Error getting response: %s", err)
+		}
+		defer res.Body.Close()
+		// Check response status
+		if res.IsError() {
+			log.Fatalf("Error: %s", res.String())
+		}
+		// Deserialize the response into a map.
+		if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
+			log.Fatalf("Error parsing the response body: %s", err)
+		}
+		log.Printf("Server: %s", r["version"].(map[string]interface{})["number"])
+	}
+	return gin.HandlerFunc(fn)
+}
+
 // postAlbums adds an album from JSON received in the request body.
 func postAlbums(c *gin.Context) {
 	var newAlbum album
