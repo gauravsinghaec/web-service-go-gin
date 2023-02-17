@@ -1,9 +1,10 @@
 package main
 import (
-	"net/http"
-
+	"net/http" 
+	"fmt"
 	"github.com/gin-gonic/gin"
 )
+
 // album represents data about a record album.
 type album struct {
 	ID     string  `json:"id"`
@@ -24,15 +25,15 @@ func main() {
 	router.GET("/albums", getAlbums)
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
-
+	http.HandleFunc("/", homeHandler)
 	router.Run("localhost:8080")
+	
 }
 
 // getAlbums responds with the list of all albums as JSON.
 func getAlbums(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, albums)
 }
-
 // postAlbums adds an album from JSON received in the request body.
 func postAlbums(c *gin.Context) {
 	var newAlbum album
@@ -62,4 +63,18 @@ func getAlbumByID(c *gin.Context) {
 			}
 	}
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+}
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/" {
+			errorHandler(w, r, http.StatusNotFound)
+			return
+	}
+	fmt.Fprint(w, "welcome home")
+}
+func errorHandler(w http.ResponseWriter, r *http.Request, status int) {
+	w.WriteHeader(status)
+	if status == http.StatusNotFound {
+			fmt.Fprint(w, "Page not found 404")
+	}
 }
